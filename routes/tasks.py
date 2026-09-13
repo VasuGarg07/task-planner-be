@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from middlewares.auth import requires_auth
-from repository.task_repo import create_task, get_task, delete_task_from_db
+from repository.task_repo import create_task, get_task, delete_task_from_db, check_user_exists_globally, update_task_assignee, update_task_status
 
 tasks_bp = Blueprint('tasks_bp', __name__)
 
@@ -58,3 +58,57 @@ def delete_task(task_id):
         return jsonify({"message": f"Task {task_id} deleted cleanly"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@tasks_bp.route("/tasks/<int:task_id>/assign", methods=['PATCH'])
+@requires_auth
+def assign_task(task_id):
+    data = request.get_json() or {}
+    assignee_id = data.get('assignee_id')
+
+    if not assignee_id:
+        return jsonify({"error": "Assignee ID is required"}), 400
+
+    if not get_task(task_id):
+        return jsonify({"error": "Task card not found"}), 404
+    
+    user_exists = check_user_exists_globally(assignee_id)
+    if not user_exists:
+        return jsonify({"error": "User does not exist"}), 400
+   
+    try:
+        update_task_assignee(task_id, assignee_id)
+        return jsonify({"task_id": task_id, "assignee_id": assignee_id, "message": "Task assigned successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+TASK_TRANSITIONS = {
+    'OPEN': ['IN PROGRESS', 'ON HOLD', 'VOID'],
+    'IN PROGRESS': ['ON HOLD', 'DONE', 'VOID'],
+    'ON HOLD': ['OPEN', 'IN PROGRESS', 'VOID'],
+    'DONE': ['OPEN'],
+    'VOID': []
+}
+
+@tasks_bp.route("/tasks/<int:task_id>/status", methods=['PATCH'])
+@requires_auth
+def update_status(task_id):
+    data = request.get_json() or {}
+    target_status = data.get('status')
+
+    if not target_status:
+        return jsonify({"error": "Status parameter is required"}), 400
+
+    task_row = get_task(task_id)
+    if task_row is None:
+        return jsonify({"error": "Task not found"}), 404
+
+    current_status = task_row[7]
+    allowed_transitions = TASK_TRANSITIONS.get(current_status, [])
+    if target_status not in allowed_transitions:
+            return jsonify({"error": "This transition is not allowed"}), 400
+    
+    try:
+        update_task_status(task_id, target_status)
+        return jsonify({"task_id": task_id, "status": target_status, "message": "Task timeline advanced"}), 200
+    except Exception as e:
+            return jsonify({"error": str(e)}), 500

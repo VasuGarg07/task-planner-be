@@ -25,9 +25,10 @@ def create_user(username, email, role):
     try:
         args = (username, email, role)
         cursor.execute(INSERT_USER_QUERY, args)
-        user_id = cursor.fetchone()[0]
-        
+        row = cursor.fetchone()
         conn.commit()
+
+        user_id = row[0] if row else None
         print(f"output user_id created: {user_id}")
         return user_id
     finally:

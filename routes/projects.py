@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from repository.project_repo import create_project, get_project, remove_project
+from repository.project_repo import create_project, get_project, remove_project, update_project_status_in_db
 from middlewares.auth import requires_auth, require_role
 
 projects_bp = Blueprint('projects_bp', __name__)
@@ -51,5 +51,40 @@ def delete_user(project_id):
             return jsonify({"error": "User profile not found"}), 404
             
         return jsonify({"message": f"User {project_id} offboarded and deleted cleanly"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+PROJECT_TRANSITIONS = {
+    'NOT STARTED': ['DISCOVERY', 'DROPPED'],
+    'DISCOVERY': ['IN PROGRESS', 'ON HOLD', 'DROPPED'],
+    'IN PROGRESS': ['ON HOLD', 'COMPLETED', 'DROPPED'],
+    'ON HOLD': ['IN PROGRESS', 'DISCOVERY', 'DROPPED'],
+    'COMPLETED': [],
+    'DROPPED': []
+}
+
+@projects_bp.route("/projects/<int:project_id>/status", methods=['PATCH'])
+@requires_auth
+@require_role('PM')
+def update_status(project_id):
+    data = request.get_json() or {}
+    target_status = data.get('status')
+
+    if not target_status:
+        return jsonify({"error": "Status parameter is required"}), 400
+
+    project_row = get_project(project_id)
+    if project_row is None:
+        return jsonify({"error": "Project not found"}), 404
+
+    current_status = project_row[4]
+    allowed_transitions = PROJECT_TRANSITIONS.get(current_status, [])
+
+    if target_status not in allowed_transitions:
+        return jsonify({"error": "This transition is not allowed"}), 400
+
+    try:
+        update_project_status_in_db(project_id, target_status)
+        return jsonify({"project_id": project_id, "status": target_status, "message": "Project timeline advanced"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

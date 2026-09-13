@@ -14,6 +14,12 @@ DELETE_PROJECT_QUERY = """
     DELETE FROM projects
     WHERE id = %s
 """
+UPDATE_PROJECT_STATUS_QUERY = """
+    UPDATE projects 
+    SET status = %s 
+    WHERE id = %s;
+"""
+
 
 def create_project(name, description):
     conn = get_pooled_conn()
@@ -60,6 +66,18 @@ def remove_project(project_id):
         conn.commit()
         return rows_deleted > 0
 
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def update_project_status_in_db(project_id, new_status):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(UPDATE_PROJECT_STATUS_QUERY, (new_status, project_id))
+        rows_updated = cursor.rowcount
+        conn.commit()
+        return rows_updated > 0
     finally:
         cursor.close()
         release_pooled_conn(conn)

@@ -27,10 +27,3 @@ CREATE TABLE IF NOT EXISTS tasks (
     CONSTRAINT check_status CHECK (status IN ('OPEN', 'IN PROGRESS', 'ON HOLD', 'DONE', 'VOID')),
     CONSTRAINT unique_task_name UNIQUE (project_id, name)
 );
-
-CREATE TABLE IF NOT EXISTS project_members (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT unique_project_membership UNIQUE (user_id, project_id)
-)
