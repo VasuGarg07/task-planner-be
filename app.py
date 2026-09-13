@@ -1,7 +1,14 @@
 from flask import Flask, jsonify, request
+
 from db import get_pooled_conn, release_pooled_conn
+from routes.users import users_bp
+from routes.projects import projects_bp
+from routes.tasks import tasks_bp
 
 app = Flask(__name__)
+app.register_blueprint(users_bp)
+app.register_blueprint(projects_bp)
+app.register_blueprint(tasks_bp)
 
 @app.route('/health')
 def health_check():
