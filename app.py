@@ -1,0 +1,24 @@
+from flask import Flask, jsonify, request
+from db import get_pooled_conn, release_pooled_conn
+
+app = Flask(__name__)
+
+@app.route('/health')
+def health_check():
+    try:
+        conn = get_pooled_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1;")
+        output = cursor.fetchone()
+        print(f"output: {output}")
+
+        cursor.close()
+        release_pooled_conn(conn)
+        return jsonify({"status": "healthy", "database":"connected"}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+if __name__ == '__main__': 
+    app.run(debug=True, port=5000) 

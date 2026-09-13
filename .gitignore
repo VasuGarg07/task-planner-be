@@ -1,0 +1,8 @@
+# Ignore local environment packages
+venv/
+__pycache__/
+*.pyc
+
+# Ignore secret password configurations
+config.json
+.env
