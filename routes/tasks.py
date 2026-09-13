@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from middlewares.auth import requires_auth
-from repository.task_repo import create_task, get_task, delete_task_from_db, check_user_exists_globally, update_task_assignee, update_task_status
+from repository.task_repo import create_task, get_task, delete_task_from_db, check_user_exists_globally, update_task_assignee, update_task_status, update_task_story_points
 
 tasks_bp = Blueprint('tasks_bp', __name__)
 
@@ -30,7 +30,7 @@ def get_task_profile(task_id):
         task_row = get_task(task_id)
         
         if task_row is None:
-            return jsonify({"error": "Task card not found"}), 404
+            return jsonify({"error": "Task not found"}), 404
             
         return jsonify({
             "id": task_row[0],
@@ -110,5 +110,24 @@ def update_status(task_id):
     try:
         update_task_status(task_id, target_status)
         return jsonify({"task_id": task_id, "status": target_status, "message": "Task timeline advanced"}), 200
+    except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@tasks_bp.route("/tasks/<int:task_id>/story-points", methods=['PATCH'])
+@requires_auth
+def update_story_points(task_id):
+    data = request.get_json() or {}
+    story_points = data.get('story_points')
+
+    if story_points is None:
+        return jsonify({"error": "Story Points parameter is required"}), 400
+
+    task_row = get_task(task_id)
+    if task_row is None:
+        return jsonify({"error": "Task not found"}), 404
+
+    try:
+        update_task_story_points(task_id, story_points)
+        return jsonify({"task_id": task_id, "story_points": story_points, "message": "Task story points assigned"}), 200
     except Exception as e:
             return jsonify({"error": str(e)}), 500

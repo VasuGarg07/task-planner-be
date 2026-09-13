@@ -8,7 +8,8 @@ INSERT_USER_QUERY = """
 """
 
 SELECT_USER_QUERY = """
-    SELECT * FROM users
+    SELECT id, username, email, role
+    FROM users
     WHERE email = %s;
 """
 

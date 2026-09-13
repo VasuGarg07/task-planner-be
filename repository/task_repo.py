@@ -34,6 +34,12 @@ UPDATE_TASK_STATUS_QUERY = """
     WHERE id = %s;
 """
 
+UPDATE_TASK_STORY_POINTS_QUERY = """
+    UPDATE tasks
+    SET story_points = %s
+    WHERE id = %s;
+"""
+
 def create_task(project_id, name, description, reporter_id, assignee_id=None):
     conn = get_pooled_conn()
     cursor = conn.cursor()
@@ -96,9 +102,22 @@ def update_task_status(task_id, new_status):
     cursor = conn.cursor()
 
     try:
-        cursor.execute(UPDATE_TASK_STATUS_QUERY, (task_id, new_status))
+        cursor.execute(UPDATE_TASK_STATUS_QUERY, (new_status, task_id))
         rows_updated = cursor.rowcount
-        cursor.commit()
+        conn.commit()
+        return rows_updated > 0
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def update_task_story_points(task_id, story_points):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(UPDATE_TASK_STORY_POINTS_QUERY, (story_points, task_id))
+        rows_updated = cursor.rowcount
+        conn.commit()
         return rows_updated > 0
     finally:
         cursor.close()

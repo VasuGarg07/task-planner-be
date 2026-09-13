@@ -27,3 +27,17 @@ CREATE TABLE IF NOT EXISTS tasks (
     CONSTRAINT check_status CHECK (status IN ('OPEN', 'IN PROGRESS', 'ON HOLD', 'DONE', 'VOID')),
     CONSTRAINT unique_task_name UNIQUE (project_id, name)
 );
+
+CREATE TABLE IF NOT EXISTS sprints (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    max_capacity INTEGER NOT NULL,
+    status VARCHAR (20) DEFAULT 'PLANNING',
+    CONSTRAINT check_status CHECK (status IN ('PLANNING', 'ACTIVE', 'COMPLETED'))
+);
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS story_points INTEGER DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sprint_id INTEGER REFERENCES sprints(id) ON DELETE SET NULL;
