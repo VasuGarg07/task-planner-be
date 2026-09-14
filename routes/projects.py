@@ -48,9 +48,9 @@ def delete_user(project_id):
         deleted = remove_project(project_id)
         
         if not deleted:
-            return jsonify({"error": "User profile not found"}), 404
+            return jsonify({"error": "Project not found"}), 404
             
-        return jsonify({"message": f"User {project_id} offboarded and deleted cleanly"}), 200
+        return jsonify({"message": f"Project {project_id} deleted cleanly"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

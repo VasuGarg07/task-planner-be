@@ -29,12 +29,8 @@ def create_project(name, description):
         args = name, description
         cursor.execute(INSERT_PROJECT_QUERY, args)
         row = cursor.fetchone()
-
-        if row is None:
-                return None
-                
-        print(f"user details: {row}")
-        return row 
+        conn.commit()
+        return row[0] if row else None
     finally:
         cursor.close()
         release_pooled_conn(conn)
@@ -45,12 +41,7 @@ def get_project(project_id):
     try:
         cursor.execute(SELECT_PROJECT_QUERY, (project_id,))
         row = cursor.fetchone()
-        
-        if row is None:
-            return None
-            
-        print(f"project found: {row}")
-        return row
+        return row if row else None
     finally:
         cursor.close()
         release_pooled_conn(conn)

@@ -8,7 +8,7 @@ INSERT_TASK_QUERY = """
 """
 
 SELECT_TASK_BY_ID_QUERY = """
-    SELECT id, project_id, name, description, reporter, assignee, created_at, status 
+    SELECT id, project_id, name, description, reporter, assignee, created_at, status, sprint_id, story_points
     FROM tasks 
     WHERE id = %s;
 """
@@ -59,6 +59,7 @@ def get_task(task_id):
     try:
         cursor.execute(SELECT_TASK_BY_ID_QUERY, (task_id,))
         row = cursor.fetchone()
+        print(f"TASK: {row}")
         return row if row else None
     finally:
         cursor.close()

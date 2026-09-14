@@ -40,7 +40,9 @@ def get_task_profile(task_id):
             "reporter_id": task_row[4],
             "assignee_id": task_row[5],
             "created_at": str(task_row[6]),
-            "status": task_row[7]
+            "status": task_row[7],
+            "sprint_id": task_row[8],
+            "story_points": task_row[9]
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -113,6 +115,7 @@ def update_status(task_id):
     except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+# TODO: What will happen if story points are updated when task is already in sprint.
 @tasks_bp.route("/tasks/<int:task_id>/story-points", methods=['PATCH'])
 @requires_auth
 def update_story_points(task_id):

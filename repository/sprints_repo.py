@@ -67,7 +67,7 @@ def update_sprint_status_in_db(sprint_id, new_status):
     conn = get_pooled_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute(UPDATE_SPRINT_STATUS, (sprint_id, new_status))
+        cursor.execute(UPDATE_SPRINT_STATUS, (new_status, sprint_id))
         row = cursor.fetchone()
 
         if new_status == 'COMPLETED':
