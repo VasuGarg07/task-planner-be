@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from repository.project_repo import create_project, get_project, remove_project, update_project_status_in_db
 from middlewares.auth import requires_auth, require_role
+from middlewares.logger import log_action
 
 projects_bp = Blueprint('projects_bp', __name__)
 
 @projects_bp.route("/projects", methods=['POST'])
 @requires_auth
 @require_role('PM')
+@log_action('PROJECT')
 def post_project():
     data = request.get_json()
     name = data.get('name')
@@ -17,7 +19,7 @@ def post_project():
 
     try:
         new_project_id = create_project(name, description)
-        return jsonify({"id": new_project_id, "message": f"Project {name} created"}), 201
+        return jsonify({"project_id": new_project_id, "message": f"Project {name} created"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -43,14 +45,15 @@ def get_project_profile(project_id):
 @projects_bp.route("/projects/<int:project_id>", methods=['DELETE'])
 @requires_auth
 @require_role('PM')
-def delete_user(project_id):
+@log_action('PROJECT')
+def delete_project(project_id):
     try:
         deleted = remove_project(project_id)
         
         if not deleted:
             return jsonify({"error": "Project not found"}), 404
             
-        return jsonify({"message": f"Project {project_id} deleted cleanly"}), 200
+        return jsonify({"project_id": project_id, "message": f"Project {project_id} deleted cleanly"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -66,6 +69,7 @@ PROJECT_TRANSITIONS = {
 @projects_bp.route("/projects/<int:project_id>/status", methods=['PATCH'])
 @requires_auth
 @require_role('PM')
+@log_action('PROJECT')
 def update_status(project_id):
     data = request.get_json() or {}
     target_status = data.get('status')

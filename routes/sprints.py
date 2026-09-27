@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify, g
 from middlewares.auth import requires_auth, require_role
 from repository.sprints_repo import create_sprint, get_sprint, update_sprint_status_in_db, get_sprint_current_weight, assign_task_to_sprint
 from repository.task_repo import get_task
+from middlewares.logger import log_action
 
 sprints_bp = Blueprint('sprints_bp', __name__)
 
 @sprints_bp.route("/sprints", methods=['POST'])
 @requires_auth
 @require_role('PM')
+@log_action('SPRINT')
 def post_sprint():
     data = request.get_json() or {}
     project_id = data.get('project_id')
@@ -21,7 +23,7 @@ def post_sprint():
 
     try:
         new_sprint_id = create_sprint(project_id, name, start_date, end_date, max_capacity)
-        return jsonify({"id": new_sprint_id, "message": f"Sprint created with max capacity of {max_capacity} points"}), 201
+        return jsonify({"sprint_id": new_sprint_id, "message": f"Sprint created with max capacity of {max_capacity} points"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -62,6 +64,7 @@ def get_sprint_weight(sprint_id):
 @sprints_bp.route("/sprints/<int:sprint_id>/add-task", methods=['PATCH'])
 @requires_auth
 @require_role('PM') 
+@log_action('SPRINT')
 def add_task_to_sprint(sprint_id):
     data = request.get_json() or {}
     task_id = data.get('task_id')
@@ -99,6 +102,7 @@ SPRINT_TRANSITIONS = {
 @sprints_bp.route("/sprints/<int:sprint_id>/status", methods=['PATCH'])
 @requires_auth
 @require_role('PM') 
+@log_action('SPRINT')
 def update_sprint_status(sprint_id):
     data = request.get_json() or {}
     target_status = data.get('status')

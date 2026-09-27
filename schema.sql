@@ -35,9 +35,23 @@ CREATE TABLE IF NOT EXISTS sprints (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     max_capacity INTEGER NOT NULL,
-    status VARCHAR (20) DEFAULT 'PLANNING',
+    status VARCHAR(20) DEFAULT 'PLANNING',
     CONSTRAINT check_status CHECK (status IN ('PLANNING', 'ACTIVE', 'COMPLETED'))
 );
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS story_points INTEGER DEFAULT 0;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sprint_id INTEGER REFERENCES sprints(id) ON DELETE SET NULL;
+
+-- TASK 4: IMMUTABLE LOGGER SERVICE
+CREATE TABLE IF NOT EXISTS logs (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    actor_id INTEGER NOT NULL,
+    subject_type VARCHAR(10) DEFAULT 'PROJECT',
+    subject_id INTEGER NOT NULL,
+    action_type VARCHAR (10) DEFAULT 'CREATE',
+    change_record JSONB,
+    CONSTRAINT check_action_type CHECK (action_type IN ('CREATE', 'UPDATE', 'DELETE')),
+    CONSTRAINT check_subject_type CHECK (subject_type IN ('PROJECT', 'SPRINT', 'TASK'))
+);
