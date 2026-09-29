@@ -30,7 +30,6 @@ def create_user(username, email, role):
         conn.commit()
 
         user_id = row[0] if row else None
-        print(f"output user_id created: {user_id}")
         return user_id
     finally:
         cursor.close()
@@ -47,7 +46,6 @@ def get_user(email):
         if row is None:
             return None
             
-        print(f"user details: {row}")
         return row 
     finally:
         cursor.close()

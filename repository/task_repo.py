@@ -59,7 +59,6 @@ def get_task(task_id):
     try:
         cursor.execute(SELECT_TASK_BY_ID_QUERY, (task_id,))
         row = cursor.fetchone()
-        print(f"TASK: {row}")
         return row if row else None
     finally:
         cursor.close()

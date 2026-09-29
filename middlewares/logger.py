@@ -33,8 +33,6 @@ def log_action(subject_type='TASK'):
                     subject_id = res_dict.get('task_id')
                     project_id = get_subject_project(subject_type, subject_id)
     
-                print("RequestDetails - ", request.view_args)
-    
                 create_log(project_id, actor_id, subject_type, subject_id, action_type, res_dict)
 
             return response, status

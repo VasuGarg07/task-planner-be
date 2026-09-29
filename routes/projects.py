@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
-from repository.project_repo import create_project, get_project, remove_project, update_project_status_in_db
+from repository.project_repo import create_project, get_project, get_sprint_capacity_report, remove_project, update_project_status_in_db
 from middlewares.auth import requires_auth, require_role
 from middlewares.logger import log_action
+from repository.log_repo import get_project_logs
 
 projects_bp = Blueprint('projects_bp', __name__)
 
@@ -90,5 +91,33 @@ def update_status(project_id):
     try:
         update_project_status_in_db(project_id, target_status)
         return jsonify({"project_id": project_id, "status": target_status, "message": "Project timeline advanced"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@projects_bp.route("/projects/<int:project_id>/logs", methods=['GET'])
+@requires_auth
+def get_logs(project_id):
+    try:
+        logs = get_project_logs(project_id)
+
+        if logs is None or not logs:
+            return jsonify({"error": "Project not found"}), 400
+        
+        return jsonify({"logs": logs}), 200
+
+    except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@projects_bp.route("/projects/<int:project_id>/sprint-report", methods=['GET'])
+@requires_auth
+def get_sprint_report(project_id):
+    try:
+        sprints = get_sprint_capacity_report(project_id)
+        
+        if sprints is None:
+            return jsonify({"error": "Project not found"}), 404
+            
+        return jsonify({"sprints": sprints}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
