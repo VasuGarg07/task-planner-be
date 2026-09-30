@@ -18,6 +18,12 @@ DELETE_USER_QUERY = """
     WHERE id = %s;
 """
 
+FETCH_USER_LIST = """
+    select id, username, email, role
+    FROM users
+    LIMIT %s OFFSET %s;
+"""
+
 
 def create_user(username, email, role):
     conn = get_pooled_conn()
@@ -60,6 +66,27 @@ def remove_user(user_id):
         
         conn.commit()
         return rows_deleted > 0
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def fetch_user_list(page_num=1, page_size=10):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+    try:
+        limit = int(page_size)
+        offset = (int(page_num) - 1) * limit
+
+        cursor.execute(FETCH_USER_LIST, (limit, offset))
+        rows = cursor.fetchall()
+
+        if not rows:
+            return []
+
+        columns = ["id", "username", "email", "role"]
+        users = [dict(zip(columns, row)) for row in rows]
+        return users
+
     finally:
         cursor.close()
         release_pooled_conn(conn)

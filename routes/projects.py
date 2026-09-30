@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from repository.project_repo import create_project, get_project, get_project_workload, get_sprint_capacity, remove_project, update_project_status_in_db
+from repository.project_repo import create_project, fetch_project_list, get_project, get_project_workload, get_sprint_capacity, remove_project, update_project_status_in_db
 from middlewares.auth import requires_auth, require_role
 from middlewares.logger import log_action
 from repository.log_repo import get_project_logs
@@ -133,5 +133,17 @@ def get_workload_report(project_id):
             
         return jsonify({"project_id": project_id,"workload_report": data}), 200
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@projects_bp.route("/projects", methods=['GET'])
+def fetch_projects():
+    try:
+        status = request.args.get("status")
+        page_num = request.args.get("page") or 1
+        page_size = request.args.get("pageSize") or 10
+
+        projects = fetch_project_list(status, page_num, page_size)
+        return jsonify({"projects": projects}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

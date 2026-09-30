@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from middlewares.auth import requires_auth
-from repository.task_repo import create_task, get_task, delete_task_from_db, check_user_exists_globally, update_task_assignee, update_task_status, update_task_story_points
+from repository.task_repo import create_task, fetch_task_list, get_task, delete_task_from_db, check_user_exists_globally, update_task_assignee, update_task_status, update_task_story_points
 from middlewares.logger import log_action
 
 tasks_bp = Blueprint('tasks_bp', __name__)
@@ -140,3 +140,20 @@ def update_story_points(task_id):
         return jsonify({"task_id": task_id, "story_points": story_points, "message": "Task story points assigned"}), 200
     except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+@tasks_bp.route("/tasks", methods=['GET'])
+def fetch_projects():
+    try:
+        project_id = request.args.get("projectId")
+
+        if not project_id:
+            return jsonify({"error": "Project id is required"}), 400
+
+        status = request.args.get("status")
+        page_num = request.args.get("page") or 1
+        page_size = request.args.get("pageSize") or 10
+
+        projects = fetch_task_list(project_id, status, page_num, page_size)
+        return jsonify({"projects": projects}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

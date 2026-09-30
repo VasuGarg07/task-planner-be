@@ -7,7 +7,8 @@ INSERT_PROJECT_QUERY = """
     RETURNING id;
 """
 SELECT_PROJECT_QUERY = """
-    SELECT * FROM projects
+    SELECT id, name, description, created_at, status
+    FROM projects
     WHERE id = %s
 """
 DELETE_PROJECT_QUERY = """
@@ -38,6 +39,11 @@ PROJECT_WORKLOAD_QUERY = """
     WHERE t.project_id = %s
     GROUP BY t.status,  u.id, u.username
     ORDER BY t.status,  u.id, u.username
+"""
+
+PROJECTS_BASE_QUERY = """
+    SELECT id, name, description, created_at, status
+    FROM projects
 """
 
 
@@ -138,6 +144,38 @@ def get_project_workload(project_id):
 
         return data
 
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def fetch_project_list(status=None, page_num=1, page_size=10):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+    try:
+        limit = int(page_size)
+        offset = (int(page_num) - 1) * limit
+        query = PROJECTS_BASE_QUERY
+
+        if status is not None:
+            query += """
+            WHERE status = %s
+        """
+
+        query += """
+        LIMIT %s OFFSET %s
+        """
+
+        args = (limit, offset) if status is None else (status, limit, offset)
+        cursor.execute(query, args)
+        rows = cursor.fetchall()
+
+        if not rows:
+            return []
+
+        columns = ['id', 'name', 'description', 'created_at', 'status']
+        data = [dict(zip(columns, row)) for row in rows]
+        return data
+    
     finally:
         cursor.close()
         release_pooled_conn(conn)

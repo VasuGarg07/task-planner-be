@@ -40,6 +40,12 @@ UPDATE_TASK_STORY_POINTS_QUERY = """
     WHERE id = %s;
 """
 
+TASKS_BASE_QUERY = """
+    SELECT id, project_id, name, description, reporter, assignee, created_at, status, sprint_id, story_points
+    FROM tasks
+    WHERE project_id = %s
+"""
+
 def create_task(project_id, name, description, reporter_id, assignee_id=None):
     conn = get_pooled_conn()
     cursor = conn.cursor()
@@ -119,6 +125,37 @@ def update_task_story_points(task_id, story_points):
         rows_updated = cursor.rowcount
         conn.commit()
         return rows_updated > 0
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def fetch_task_list(project_id, status=None, page_num=1, page_size=10):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+    try:
+        project_id = int(project_id)
+        limit = int(page_size)
+        offset = (int(page_num) - 1) * limit
+        query = TASKS_BASE_QUERY
+
+        if status is not None:
+            query += """ AND status = %s """
+
+        query += """
+        LIMIT %s OFFSET %s
+        """
+
+        args = (project_id, limit, offset) if status is None else (project_id, status, limit, offset)
+        cursor.execute(query, args)
+        rows = cursor.fetchall()
+
+        if not rows:
+            return []
+
+        columns = ['id', 'project_id', 'name', 'description', 'reporter', 'assignee', 'created_at', 'status', 'sprint_id', 'story_points']
+        data = [dict(zip(columns, row)) for row in rows]
+        return data
+    
     finally:
         cursor.close()
         release_pooled_conn(conn)

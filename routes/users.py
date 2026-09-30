@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from repository.user_repo import create_user, get_user, remove_user
+from repository.user_repo import create_user, fetch_user_list, get_user, remove_user
 
 users_bp = Blueprint('users_bp', __name__)
 
@@ -21,24 +21,29 @@ def post_user():
 
 @users_bp.route("/users", methods=['GET'])
 def get_user_profile():
-    email = request.args.get('email')
-    
-    if not email:
-        return jsonify({"error": "Email query parameter is required"}), 400
-
     try:
-        user_row = get_user(email)
-        
-        if user_row is None:
-            return jsonify({"error": "User profile not found"}), 404
+        # 1. Fetch User Profile 
+        email = request.args.get('email')
+        if email:
+            user_row = get_user(email)
             
-        return jsonify({
-            "id": user_row[0],
-            "username": user_row[1],
-            "email": user_row[2],
-            "role": user_row[3]
-        }), 200
-    
+            if user_row is None:
+                return jsonify({"error": "User profile not found"}), 404
+                
+            return jsonify({
+                "id": user_row[0],
+                "username": user_row[1],
+                "email": user_row[2],
+                "role": user_row[3]
+            }), 200
+
+        # 2. Fetch User List
+        page_num = request.args.get("page") or 1
+        page_size = request.args.get("pageSize") or 10
+
+        users = fetch_user_list(page_num, page_size)
+        return jsonify({"users": users}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
