@@ -47,9 +47,9 @@ def get_project_logs(project_id):
     cursor = conn.cursor()
     try:
         cursor.execute(SELECT_PROJECT_LOGS_QUERY, (project_id,))
-        rows = cursor.fetchall()\
+        rows = cursor.fetchall()
 
-        if rows is None:
+        if rows is None or len(rows) == 0:
             return []
 
         columns = ['id', 'timestamp', 'project_id', 'actor_id', 'subject_type', 'subject_id', 'action_type', 'change_record']

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from repository.project_repo import create_project, get_project, get_sprint_capacity_report, remove_project, update_project_status_in_db
+from repository.project_repo import create_project, get_project, get_project_workload, get_sprint_capacity, remove_project, update_project_status_in_db
 from middlewares.auth import requires_auth, require_role
 from middlewares.logger import log_action
 from repository.log_repo import get_project_logs
@@ -110,14 +110,28 @@ def get_logs(project_id):
 
 @projects_bp.route("/projects/<int:project_id>/sprint-report", methods=['GET'])
 @requires_auth
-def get_sprint_report(project_id):
+def get_sprint_capacity_report(project_id):
     try:
-        sprints = get_sprint_capacity_report(project_id)
+        sprints = get_sprint_capacity(project_id)
         
         if sprints is None:
             return jsonify({"error": "Project not found"}), 404
             
         return jsonify({"sprints": sprints}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@projects_bp.route("/projects/<int:project_id>/workload-report", methods=['GET'])
+@requires_auth
+def get_workload_report(project_id):
+    try:
+        data = get_project_workload(project_id)
+        
+        if not data:
+            return jsonify({"error": "Project not found"}), 404
+            
+        return jsonify({"project_id": project_id,"workload_report": data}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -30,6 +30,16 @@ SPRINT_CAPACITY_QUERY = """
     GROUP BY s.id, s.name, s.start_date, s.end_date, s.max_capacity, s.status;
 """
 
+PROJECT_WORKLOAD_QUERY = """
+    SELECT t.status, u.id, u.username, COUNT( CONCAT( t.status, t.assignee))
+    FROM tasks t
+        JOIN users u
+        ON t.assignee = u.id
+    WHERE t.project_id = %s
+    GROUP BY t.status,  u.id, u.username
+    ORDER BY t.status,  u.id, u.username
+"""
+
 
 def create_project(name, description):
     conn = get_pooled_conn()
@@ -83,14 +93,14 @@ def update_project_status_in_db(project_id, new_status):
         cursor.close()
         release_pooled_conn(conn)
 
-def get_sprint_capacity_report(project_id):
+def get_sprint_capacity(project_id):
     conn = get_pooled_conn()
     cursor = conn.cursor()
     try:
         cursor.execute(SPRINT_CAPACITY_QUERY, (project_id,))
         rows = cursor.fetchall()
 
-        if rows is None:
+        if rows is None or len(rows) == 0:
             return []
 
         print(rows)
@@ -98,6 +108,36 @@ def get_sprint_capacity_report(project_id):
         sprints = [dict(zip(columns, row)) for row in rows]
 
         return sprints
+    finally:
+        cursor.close()
+        release_pooled_conn(conn)
+
+def get_project_workload(project_id):
+    conn = get_pooled_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(PROJECT_WORKLOAD_QUERY, (project_id,))
+        rows = cursor.fetchall()
+
+        if rows is None or len(rows) == 0:
+            return {}
+
+        data = {}
+        for row in rows:
+            status, id, username, task_count = row
+            user_dict = {
+                "id": id,
+                "username": username,
+                "task_count": task_count
+            }
+
+            if status not in data:
+                data[status] = []
+
+            data.get(status).append(user_dict)
+
+        return data
+
     finally:
         cursor.close()
         release_pooled_conn(conn)
