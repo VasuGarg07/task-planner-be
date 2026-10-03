@@ -1,4 +1,4 @@
-from db import get_pooled_conn, release_pooled_conn
+from db import get_db_conn
 
 # RAW SQL QUERY CONSTANTS
 INSERT_TASK_QUERY = """
@@ -47,115 +47,81 @@ TASKS_BASE_QUERY = """
 """
 
 def create_task(project_id, name, description, reporter_id, assignee_id=None):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        args = (project_id, name, description, reporter_id, assignee_id)
-        cursor.execute(INSERT_TASK_QUERY, args)
-        row = cursor.fetchone()
-        conn.commit()
-        return row[0] if row else None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            args = (project_id, name, description, reporter_id, assignee_id)
+            cursor.execute(INSERT_TASK_QUERY, args)
+            row = cursor.fetchone()
+            conn.commit()
+            return row[0] if row else None
 
 def get_task(task_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(SELECT_TASK_BY_ID_QUERY, (task_id,))
-        row = cursor.fetchone()
-        return row if row else None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(SELECT_TASK_BY_ID_QUERY, (task_id,))
+            row = cursor.fetchone()
+            return row if row else None
 
 def delete_task_from_db(task_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(DELETE_TASK_QUERY, (task_id,))
-        rows_deleted = cursor.rowcount
-        
-        conn.commit()
-        return rows_deleted > 0
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(DELETE_TASK_QUERY, (task_id,))
+            rows_deleted = cursor.rowcount
+            conn.commit()
+            return rows_deleted > 0
 
 def check_user_exists_globally(user_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(CHECK_USER_EXISTS_QUERY, (user_id,))
-        return cursor.fetchone() is not None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(CHECK_USER_EXISTS_QUERY, (user_id,))
+            return cursor.fetchone() is not None
 
 def update_task_assignee(task_id, assignee_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(UPDATE_TASK_ASSIGNEE_QUERY, (assignee_id, task_id))
-        conn.commit()
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(UPDATE_TASK_ASSIGNEE_QUERY, (assignee_id, task_id))
+            rows_updated = cursor.rowcount
+            conn.commit()
+            return rows_updated > 0
 
 def update_task_status(task_id, new_status):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(UPDATE_TASK_STATUS_QUERY, (new_status, task_id))
-        rows_updated = cursor.rowcount
-        conn.commit()
-        return rows_updated > 0
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(UPDATE_TASK_STATUS_QUERY, (new_status, task_id))
+            rows_updated = cursor.rowcount
+            conn.commit()
+            return rows_updated > 0
 
 def update_task_story_points(task_id, story_points):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(UPDATE_TASK_STORY_POINTS_QUERY, (story_points, task_id))
-        rows_updated = cursor.rowcount
-        conn.commit()
-        return rows_updated > 0
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(UPDATE_TASK_STORY_POINTS_QUERY, (story_points, task_id))
+            rows_updated = cursor.rowcount
+            conn.commit()
+            return rows_updated > 0
 
 def fetch_task_list(project_id, status=None, page_num=1, page_size=10):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        project_id = int(project_id)
-        limit = int(page_size)
-        offset = (int(page_num) - 1) * limit
-        query = TASKS_BASE_QUERY
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            project_id = int(project_id)
+            limit = int(page_size)
+            offset = (int(page_num) - 1) * limit
+            query = TASKS_BASE_QUERY
 
-        if status is not None:
-            query += """ AND status = %s """
+            if status is not None:
+                query += """ AND status = %s """
 
-        query += """
-        LIMIT %s OFFSET %s
-        """
+            query += """
+            LIMIT %s OFFSET %s
+            """
 
-        args = (project_id, limit, offset) if status is None else (project_id, status, limit, offset)
-        cursor.execute(query, args)
-        rows = cursor.fetchall()
+            args = (project_id, limit, offset) if status is None else (project_id, status, limit, offset)
+            cursor.execute(query, args)
+            rows = cursor.fetchall()
 
-        if not rows:
-            return []
+            if not rows:
+                return []
 
-        columns = ['id', 'project_id', 'name', 'description', 'reporter', 'assignee', 'created_at', 'status', 'sprint_id', 'story_points']
-        data = [dict(zip(columns, row)) for row in rows]
-        return data
-    
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+            columns = ['id', 'project_id', 'name', 'description', 'reporter', 'assignee', 'created_at', 'status', 'sprint_id', 'story_points']
+            data = [dict(zip(columns, row)) for row in rows]
+            return data

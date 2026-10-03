@@ -1,6 +1,6 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 
-from db import get_pooled_conn, release_pooled_conn
+from db import init_db, get_db_conn
 from routes.users import users_bp
 from routes.projects import projects_bp
 from routes.tasks import tasks_bp
@@ -8,17 +8,18 @@ from routes.sprints import sprints_bp
 
 app = Flask(__name__)
 
+init_db()
+
 @app.route('/health')
 def health_check():
     try:
-        conn = get_pooled_conn()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1;")
-        output = cursor.fetchone()
-        print(f"output: {output}")
+        # Globally accessible, thread-safe, and cleanly isolated
+        with get_db_conn() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1;")
+                output = cursor.fetchone()
+                print(f"output: {output}")
 
-        cursor.close()
-        release_pooled_conn(conn)
         return jsonify({"status": "healthy", "database":"connected"}), 200
 
     except Exception as e:

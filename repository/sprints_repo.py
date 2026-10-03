@@ -1,4 +1,4 @@
-from db import get_pooled_conn, release_pooled_conn
+from db import get_db_conn
 
 # RAW SQL QUERIES
 INSERT_SPRINT_QUERY = """
@@ -40,63 +40,44 @@ BATCH_CARRY_OVER_QUERY = """
 
 
 def create_sprint(project_id, name, start_date, end_date, max_capacity):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        args = (project_id, name, start_date, end_date, max_capacity)
-        cursor.execute(INSERT_SPRINT_QUERY, args)
-        row = cursor.fetchone()
-        conn.commit()
-        return row[0] if row else None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            args = (project_id, name, start_date, end_date, max_capacity)
+            cursor.execute(INSERT_SPRINT_QUERY, args)
+            row = cursor.fetchone()
+            conn.commit()
+            return row[0] if row else None
 
 def get_sprint(sprint_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(SELECT_SPRINT_QUERY, (sprint_id,))
-        row = cursor.fetchone()
-        return row if row else None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(SELECT_SPRINT_QUERY, (sprint_id,))
+            row = cursor.fetchone()
+            return row if row else None
 
 def update_sprint_status_in_db(sprint_id, new_status):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(UPDATE_SPRINT_STATUS, (new_status, sprint_id))
-        row = cursor.fetchone()
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
 
-        if new_status == 'COMPLETED':
-            cursor.execute(BATCH_CARRY_OVER_QUERY, (sprint_id,))
-            print(f"Sprint {sprint_id} closed: Unfinished tasks evicted to backlog.")
+            cursor.execute(UPDATE_SPRINT_STATUS, (new_status, sprint_id))
+            row = cursor.fetchone()
 
-        conn.commit()
-        return row[0] if row else None
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+            if new_status == 'COMPLETED':
+                cursor.execute(BATCH_CARRY_OVER_QUERY, (sprint_id,))
+                print(f"Sprint {sprint_id} closed: Unfinished tasks evicted to backlog.")
+
+            conn.commit()
+            return row[0] if row else None
 
 def get_sprint_current_weight(sprint_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(SUM_SPRINT_STORY_POINTS, (sprint_id,))
-        row = cursor.fetchone()
-        return row[0] if row else 0
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(SUM_SPRINT_STORY_POINTS, (sprint_id,))
+            row = cursor.fetchone()
+            return row[0] if row else 0
 
 def assign_task_to_sprint(task_id, sprint_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(UPDATE_TASK_SPRINT_MAPPING, (sprint_id, task_id))
-        conn.commit()
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(UPDATE_TASK_SPRINT_MAPPING, (sprint_id, task_id))
+            conn.commit()

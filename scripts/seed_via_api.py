@@ -12,7 +12,7 @@ import json
 import random
 from datetime import date, timedelta
 
-import psycopg2
+import psycopg
 import requests
 
 BASE_URL = "http://localhost:5000"
@@ -23,14 +23,14 @@ with open("config.json") as f:
 
 def reset_database():
     """Truncate all tables so the API seed starts from a clean slate."""
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         host=DB_CONFIG.get("DB_HOST", "localhost"),
         port=5432,
         user="postgres",
         password=DB_CONFIG.get("DB_PASSWORD"),
         dbname="task_planner",
+        autocommit=True,
     )
-    conn.autocommit = True
     cur = conn.cursor()
     cur.execute("TRUNCATE TABLE logs, tasks, sprints, projects, users RESTART IDENTITY CASCADE;")
     cur.close()

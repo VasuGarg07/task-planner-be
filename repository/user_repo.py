@@ -1,4 +1,4 @@
-from db import get_pooled_conn, release_pooled_conn
+from db import get_db_conn
 
 # RAW SQL QUERIES
 INSERT_USER_QUERY = """
@@ -26,67 +26,42 @@ FETCH_USER_LIST = """
 
 
 def create_user(username, email, role):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-
-    try:
-        args = (username, email, role)
-        cursor.execute(INSERT_USER_QUERY, args)
-        row = cursor.fetchone()
-        conn.commit()
-
-        user_id = row[0] if row else None
-        return user_id
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            args = (username, email, role)
+            cursor.execute(INSERT_USER_QUERY, args)
+            row = cursor.fetchone()
+            conn.commit()
+            user_id = row[0] if row else None
+            return user_id
 
 def get_user(email):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(SELECT_USER_QUERY, (email,))
-        row = cursor.fetchone()
-        
-        if row is None:
-            return None
-            
-        return row 
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(SELECT_USER_QUERY, (email,))
+            row = cursor.fetchone()
+            return row
 
 def remove_user(user_id):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(DELETE_USER_QUERY, (user_id,))
-        rows_deleted = cursor.rowcount
-        
-        conn.commit()
-        return rows_deleted > 0
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(DELETE_USER_QUERY, (user_id,))
+            rows_deleted = cursor.rowcount
+            conn.commit()
+            return rows_deleted > 0
 
 def fetch_user_list(page_num=1, page_size=10):
-    conn = get_pooled_conn()
-    cursor = conn.cursor()
-    try:
-        limit = int(page_size)
-        offset = (int(page_num) - 1) * limit
+    with get_db_conn() as conn:
+        with conn.cursor() as cursor:
+            limit = int(page_size)
+            offset = (int(page_num) - 1) * limit
 
-        cursor.execute(FETCH_USER_LIST, (limit, offset))
-        rows = cursor.fetchall()
+            cursor.execute(FETCH_USER_LIST, (limit, offset))
+            rows = cursor.fetchall()
 
-        if not rows:
-            return []
+            if not rows:
+                return []
 
-        columns = ["id", "username", "email", "role"]
-        users = [dict(zip(columns, row)) for row in rows]
-        return users
-
-    finally:
-        cursor.close()
-        release_pooled_conn(conn)
+            columns = ["id", "username", "email", "role"]
+            users = [dict(zip(columns, row)) for row in rows]
+            return users
